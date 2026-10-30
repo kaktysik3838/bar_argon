@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Онлайн Пьянка! 🍻</title>
+    <!-- Подключаем PeerJS для P2P видеосвязи без сложного бэкенда -->
+    <script src="https://unpkg.com"></script>
+    <style>
+        :root {
+            --bg-color: #121214;
+            --card-bg: #1e1e24;
+            --accent: #ff9f1c;
+            --accent-hover: #f38b00;
+            --secondary: #2e2e38;
+            --text: #ffffff;
+            --danger: #e71d36;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Шапка с местом под твой логотип */
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--accent);
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            color: var(--accent);
+            text-shadow: 0 2px 10px rgba(255, 159, 28, 0.3);
+        }
+
+        /* Сетка видео */
+        .video-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 900px;
+            margin-bottom: 25px;
+        }
+
+        .video-box {
+            position: relative;
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            aspect-ratio: 4 / 3;
+            border: 2px solid #2e2e38;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transform: scaleX(-1); /* Зеркалим видео */
+        }
+
+        /* Заглушка с твоим фото, пока нет собеседника */
+        .video-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: var(--card-bg);
+            z-index: 2;
+        }
+
+        .placeholder-img {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            opacity: 0.7;
+        }
+
+        .badge {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            z-index: 3;
+        }
+
+        /* Панель управления (Кнопки) */
+        .controls {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Большая кнопка рандома */
+        .btn-large {
+            width: 100%;
+            padding: 20px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            background-color: var(--accent);
+            color: #121214;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: transform 0.1s, background-color 0.2s;
+            box-shadow: 0 4px 15px rgba(255, 159, 28, 0.4);
+        }
+
+        .btn-large:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-large:active {
+            transform: translateY(1px);
+        }
+
+        /* Две маленькие кнопки под ней */
+        .sub-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .btn-small {
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            background-color: var(--secondary);
+            color: var(--text);
+            border: 1px solid #444;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-small:hover {
+            background-color: #3b3b48;
+        }
+
+        /* Информационное табло с номером комнаты */
+        .status-bar {
+            margin-top: 15px;
+            padding: 12px 20px;
+            background: var(--card-bg);
+            border-radius: 10px;
+            text-align: center;
+            font-size: 0.95rem;
+            color: #aaa;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .room-code {
+            color: var(--accent);
+            font-weight: bold;
+            font-size: 1.2rem;
+            user-select: all;
+            cursor: pointer;
+        }
+
+        @media (max-width: 700px) {
+            .video-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <!-- ФОТО 1: Вставь сюда ссылку на свой логотип или картинку бара -->
+        <img src="https://placeholder.com" alt="Логотип" class="logo-img">
+        <h1>🍻 Онлайн Пьянка!</h1>
+    </header>
+
+    <div class="video-container">
+        <!-- Твое видео -->
+        <div class="video-box">
+            <video id="local-video" autoplay muted playsinline></video>
+            <div class="badge">Ты (Наливай!)</div>
+        </div>
+
+        <!-- Видео собутыльника -->
+        <div class="video-box">
+            <video id="remote-video" autoplay playsinline></video>
+            
+            <!-- Заглушка, которая прячется при подключении -->
+            <div class="video-placeholder" id="remote-placeholder">
+                <!-- ФОТО 2: Вставь сюда прикольную картинку ожидания собутыльника -->
+                <img src="https://placeholder.com" alt="Ожидание" class="placeholder-img">
+                <p id="placeholder-text">Ищем с кем выпить...</p>
+            </div>
+            
+            <div class="badge">Собутыльник</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <!-- Большая кнопка -->
+        <button class="btn-large" onclick="findRandomBuddy()">
+            🎲 Найти рандомного собутыльника!
+        </button>
+
+        <!-- Две маленькие кнопки под ней -->
+        <div class="sub-controls">
+            <button class="btn-small" onclick="createRoom()">➕ Создать комнату</button>
+            <button class="btn-small" onclick="joinRoomPrompt()">🔑 Войти по номеру</button>
+        </div>
+    </div>
+
+    <div class="status-bar" id="status-bar">
+        Статус: Подключение к барной стойке...
+    </div>
+
+    <script>
+        let peer = null;
+        let localStream = null;
+        let currentCall = null;
+        let myRoomId = null;
+
+        const localVideo = document.getElementById('local-video');
+        const remoteVideo = document.getElementById('remote-video');
+        const remotePlaceholder = document.getElementById('remote-placeholder');
+        const placeholderText = document.getElementById('placeholder-text');
+        const statusBar = document.getElementById('status-bar');
+
+        // 1. Запрашиваем камеру и микрофон при старте
+        async function initMedia() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                localVideo.srcObject = localStream;
+                initPeer();
+            } catch (err) {
+                statusBar.innerHTML = '❌ Ошибка: Разреши доступ к камере и микрофону!';
+                console.error(err);
+            }
+        }
+
+        // 2. Инициализируем PeerJS с коротким красивым номером комнаты
+        function initPeer() {
+            // Генерируем 5-значный номер комнаты
+            myRoomId = Math.floor(10000 + Math.random() * 90000).toString();
+            
+            peer = new Peer('pyanka-' + myRoomId);
+
+            peer.on('open', (id) => {
+                statusBar.innerHTML = `Камера готова! Твой ID: <span class="room-code">${myRoomId}</span>`;
+            });
+
+            // Когда кто-то звонит нам в комнату
+            peer.on('call', (call) => {
+                if (currentCall) currentCall.close();
+                call.answer(localStream); // Отвечаем своим видео
+                handleCall(call);
+            });
+
+            peer.on('error', (err) => {
+                statusBar.innerHTML = `⚠️ Ошибка соединения: возможно, такой комнаты нет.`;
+                console.error(err);
+            });
+        }
+
+        // 3. Обработка видеопотока от друга
+        function handleCall(call) {
+            currentCall = call;
+            statusBar.innerHTML = '🍻 Собутыльник подключен! Чин-чин!';
+            
+            call.on('stream', (remoteStream) => {
+                remoteVideo.srcObject = remoteStream;
+                remotePlaceholder.style.display = 'none'; // Прячем картинку-заглушку
+            });
+
+            call.on('close', () => {
+                remotePlaceholder.style.display = 'flex';
+                placeholderText.innerText = 'Собутыльник отключился 🍷';
+                statusBar.innerHTML = 'Связь прервана. Ищи нового!';
+            });
+        }
+
+        // КНОПКА 1 (Маленькая левая): Создать комнату для друзей
+        function createRoom() {
+            if (!myRoomId) return;
+            statusBar.innerHTML = `Отправь этот номер другу: <span class="room-code" title="Скопируй">${myRoomId}</span> (Ожидание входа...)`;
+Используйте код с осторожностью.
+placeholderText.innerText = Ждем друга в комнате #${myRoomId}...;
+remotePlaceholder.style.display = 'flex';
+}
+// КНОПКА 2 (Маленькая правая): Войти в комнату друга
+function joinRoomPrompt() {
+const roomNumber = prompt('Введи 5-значный номер комнаты друга:');
+if (!roomNumber) return;
+const cleanNumber = roomNumber.trim();
+statusBar.innerHTML = 🔄 Входим в комнату #${cleanNumber}...;
+if (currentCall) currentCall.close();
+const call = peer.call('pyanka-' + cleanNumber, localStream);
+handleCall(call);
+}
+// КНОПКА 3 (Большая): Поиск рандомного собутыльника
+// Примечание для MVP: имитирует поиск по "общим столам" (комнаты от 1 до 5)
+function findRandomBuddy() {
+if (currentCall) currentCall.close();
+remotePlaceholder.style.display = 'flex';
+placeholderText.innerText = '🎲 Ищем случайного собутыльника...';
+// Для работы рандома без своего сервера мы создаем "общий барный стол"
+const lobbyId = 'pyanka-random-lobby-1';
+statusBar.innerHTML = '🔍 Заглядываем за свободные столики...';
+// Пробуем позвонить тому, кто уже ждет в рандоме
+const call = peer.call(lobbyId, localStream);
+// Если за столом никого нет, сами садимся за этот стол и ждем
+let connected = false;
+call.on('stream', () => { connected = true; });
+handleCall(call);
+setTimeout(() => {
+if (!connected) {
+peer.destroy();
+peer = new Peer(lobbyId);
+peer.on('open', () => {
+statusBar.innerHTML = '🍺 Ты занял столик! Ждем, пока кто-то нажмет кнопку рандома...';
+});
+peer.on('call', (incomingCall) => {
+incomingCall.answer(localStream);
+handleCall(incomingCall);
+});
+}
+}, 2500);
+}
+// Запуск при загрузке страницы
+window.onload = initMedia;
